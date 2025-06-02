@@ -37,21 +37,29 @@ const router = createRouter({
 // Route guard for moderator-only routes
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresModerator) {
-    // TODO: Check if user is actually a moderator
-    // For now, just check if they're logged in
     const token = localStorage.getItem('token')
     if (!token) {
-      // Redirect to home and show login
       next('/')
       return
     }
     
-    // TODO: Add actual moderator check when backend is ready
-    // const user = getCurrentUser()
-    // if (!user || user.role !== 'moderator') {
-    //   next('/')
-    //   return
-    // }
+    // Check if user has moderator role
+    const userData = localStorage.getItem('userData')
+    if (userData) {
+      try {
+        const user = JSON.parse(userData)
+        if (!user.role || !['moderator', 'admin'].includes(user.role)) {
+          next('/')
+          return
+        }
+      } catch (e) {
+        next('/')
+        return
+      }
+    } else {
+      next('/')
+      return
+    }
   }
   
   next()

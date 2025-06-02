@@ -62,6 +62,7 @@
             <div class="flex-1 min-w-64">
               <input
                 v-model="postsFilter.search"
+                @input="debouncedLoadPosts"
                 type="text"
                 placeholder="Search posts by title or content..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -70,6 +71,7 @@
             <div>
               <input
                 v-model="postsFilter.author"
+                @input="debouncedLoadPosts"
                 type="text"
                 placeholder="Filter by author..."
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -78,17 +80,17 @@
             <div>
               <select
                 v-model="postsFilter.sortBy"
+                @change="loadPosts"
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="reported">Reported First</option>
+                <option value="created_at">Newest First</option>
                 <option value="votes">Most Voted</option>
               </select>
             </div>
             <div>
               <select
                 v-model="postsFilter.status"
+                @change="loadPosts"
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Posts</option>
@@ -117,9 +119,12 @@
         </div>
 
         <!-- Posts List -->
-        <div class="space-y-3">
+        <div v-if="isLoadingPosts" class="text-center py-8">
+          <div class="text-gray-600">Loading posts...</div>
+        </div>
+        <div v-else class="space-y-3">
           <div
-            v-for="post in filteredPosts"
+            v-for="post in posts"
             :key="post.id"
             :class="post.isReported ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'"
             class="border rounded-lg p-4"
@@ -199,13 +204,13 @@
         </div>
 
         <!-- Posts Pagination -->
-        <div v-if="filteredPosts.length > 0" class="mt-6 flex justify-center">
+        <div v-if="posts.length > 0 && postsPagination.hasMore" class="mt-6 flex justify-center">
           <button
             @click="loadMorePosts"
-            :disabled="isLoadingPosts"
+            :disabled="isLoadingMorePosts"
             class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
-            {{ isLoadingPosts ? 'Loading...' : 'Load More Posts' }}
+            {{ isLoadingMorePosts ? 'Loading...' : 'Load More Posts' }}
           </button>
         </div>
       </div>
@@ -218,6 +223,7 @@
             <div class="flex-1 min-w-64">
               <input
                 v-model="commentsFilter.search"
+                @input="debouncedLoadComments"
                 type="text"
                 placeholder="Search comments..."
                 class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -226,6 +232,7 @@
             <div>
               <input
                 v-model="commentsFilter.author"
+                @input="debouncedLoadComments"
                 type="text"
                 placeholder="Filter by author..."
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -234,17 +241,17 @@
             <div>
               <select
                 v-model="commentsFilter.sortBy"
+                @change="loadComments"
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="reported">Reported First</option>
+                <option value="created_at">Newest First</option>
                 <option value="votes">Most Voted</option>
               </select>
             </div>
             <div>
               <select
                 v-model="commentsFilter.status"
+                @change="loadComments"
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Comments</option>
@@ -273,9 +280,12 @@
         </div>
 
         <!-- Comments List -->
-        <div class="space-y-3">
+        <div v-if="isLoadingComments" class="text-center py-8">
+          <div class="text-gray-600">Loading comments...</div>
+        </div>
+        <div v-else class="space-y-3">
           <div
-            v-for="comment in filteredComments"
+            v-for="comment in comments"
             :key="comment.id"
             :class="comment.isReported ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'"
             class="border rounded-lg p-4"
@@ -363,13 +373,13 @@
         </div>
 
         <!-- Comments Pagination -->
-        <div v-if="filteredComments.length > 0" class="mt-6 flex justify-center">
+        <div v-if="comments.length > 0 && commentsPagination.hasMore" class="mt-6 flex justify-center">
           <button
             @click="loadMoreComments"
-            :disabled="isLoadingComments"
+            :disabled="isLoadingMoreComments"
             class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
-            {{ isLoadingComments ? 'Loading...' : 'Load More Comments' }}
+            {{ isLoadingMoreComments ? 'Loading...' : 'Load More Comments' }}
           </button>
         </div>
       </div>
@@ -380,6 +390,7 @@
         <div class="mb-6">
           <input
             v-model="userSearch"
+            @input="debouncedLoadUsers"
             type="text"
             placeholder="Search users by username..."
             class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -387,9 +398,12 @@
         </div>
 
         <!-- Users List -->
-        <div class="space-y-3">
+        <div v-if="isLoadingUsers" class="text-center py-8">
+          <div class="text-gray-600">Loading users...</div>
+        </div>
+        <div v-else class="space-y-3">
           <div
-            v-for="user in filteredUsers"
+            v-for="user in users"
             :key="user.id"
             class="bg-gray-50 border border-gray-200 rounded-lg p-4"
           >
@@ -403,6 +417,9 @@
                     </span>
                     <span v-if="user.role === 'moderator'" class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
                       MODERATOR
+                    </span>
+                    <span v-if="user.role === 'admin'" class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+                      ADMIN
                     </span>
                   </div>
                   <div class="text-sm text-gray-600">
@@ -441,6 +458,17 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Users Pagination -->
+        <div v-if="users.length > 0 && usersPagination.hasMore" class="mt-6 flex justify-center">
+          <button
+            @click="loadMoreUsers"
+            :disabled="isLoadingMoreUsers"
+            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{ isLoadingMoreUsers ? 'Loading...' : 'Load More Users' }}
+          </button>
         </div>
       </div>
     </div>
@@ -584,13 +612,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { modApiService } from '../services/api'
 
 const router = useRouter()
 const formatDate = inject('formatDate') as Function
 const showSuccess = inject('showSuccess') as Function
 const showError = inject('showError') as Function
+
+// Debounce function
+const debounce = (func: Function, delay: number) => {
+  let timeoutId: number
+  return (...args: any[]) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => func.apply(null, args), delay)
+  }
+}
 
 // State
 const activeTab = ref('posts')
@@ -609,16 +647,27 @@ const stats = ref({
   totalPosts: 0,
   totalComments: 0,
   reportedPosts: 0,
-  reportedComments: 0
+  reportedComments: 0,
+  totalUsers: 0,
+  bannedUsers: 0
 })
 
 const posts = ref<any[]>([])
 const comments = ref<any[]>([])
 const users = ref<any[]>([])
 
+// Pagination
+const postsPagination = ref({ page: 1, hasMore: false })
+const commentsPagination = ref({ page: 1, hasMore: false })
+const usersPagination = ref({ page: 1, hasMore: false })
+
 // Loading states
 const isLoadingPosts = ref(false)
 const isLoadingComments = ref(false)
+const isLoadingUsers = ref(false)
+const isLoadingMorePosts = ref(false)
+const isLoadingMoreComments = ref(false)
+const isLoadingMoreUsers = ref(false)
 
 // Selections
 const selectedPosts = ref<number[]>([])
@@ -628,266 +677,138 @@ const selectedComments = ref<number[]>([])
 const postsFilter = ref({
   search: '',
   author: '',
-  sortBy: 'newest',
+  sortBy: 'created_at',
   status: 'all'
 })
 
 const commentsFilter = ref({
   search: '',
   author: '',
-  sortBy: 'newest', 
+  sortBy: 'created_at', 
   status: 'all'
 })
 
 const userSearch = ref('')
 
-// Computed
-const filteredPosts = computed(() => {
-  let filtered = [...posts.value]
-  
-  // Filter by search
-  if (postsFilter.value.search) {
-    const search = postsFilter.value.search.toLowerCase()
-    filtered = filtered.filter(post => 
-      post.title.toLowerCase().includes(search) || 
-      (post.body && post.body.toLowerCase().includes(search))
-    )
-  }
-  
-  // Filter by author
-  if (postsFilter.value.author) {
-    const author = postsFilter.value.author.toLowerCase()
-    filtered = filtered.filter(post => 
-      post.author.toLowerCase().includes(author)
-    )
-  }
-  
-  // Filter by status
-  if (postsFilter.value.status === 'reported') {
-    filtered = filtered.filter(post => post.isReported)
-  } else if (postsFilter.value.status === 'normal') {
-    filtered = filtered.filter(post => !post.isReported)
-  }
-  
-  // Sort
-  switch (postsFilter.value.sortBy) {
-    case 'oldest':
-      filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      break
-    case 'reported':
-      filtered.sort((a, b) => (b.isReported ? 1 : 0) - (a.isReported ? 1 : 0))
-      break
-    case 'votes':
-      filtered.sort((a, b) => b.votes - a.votes)
-      break
-    default: // newest
-      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }
-  
-  return filtered
-})
-
-const filteredComments = computed(() => {
-  let filtered = [...comments.value]
-  
-  // Filter by search
-  if (commentsFilter.value.search) {
-    const search = commentsFilter.value.search.toLowerCase()
-    filtered = filtered.filter(comment => 
-      comment.body.toLowerCase().includes(search)
-    )
-  }
-  
-  // Filter by author
-  if (commentsFilter.value.author) {
-    const author = commentsFilter.value.author.toLowerCase()
-    filtered = filtered.filter(comment => 
-      comment.author.toLowerCase().includes(author)
-    )
-  }
-  
-  // Filter by status
-  if (commentsFilter.value.status === 'reported') {
-    filtered = filtered.filter(comment => comment.isReported)
-  } else if (commentsFilter.value.status === 'normal') {
-    filtered = filtered.filter(comment => !comment.isReported)
-  }
-  
-  // Sort
-  switch (commentsFilter.value.sortBy) {
-    case 'oldest':
-      filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      break
-    case 'reported':
-      filtered.sort((a, b) => (b.isReported ? 1 : 0) - (a.isReported ? 1 : 0))
-      break
-    case 'votes':
-      filtered.sort((a, b) => b.votes - a.votes)
-      break
-    default: // newest
-      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }
-  
-  return filtered
-})
-
-const filteredUsers = computed(() => {
-  if (!userSearch.value) return users.value
-  
-  const search = userSearch.value.toLowerCase()
-  return users.value.filter(user => 
-    user.username.toLowerCase().includes(search)
-  )
-})
+// Debounced functions
+const debouncedLoadPosts = debounce(() => loadPosts(), 500)
+const debouncedLoadComments = debounce(() => loadComments(), 500)
+const debouncedLoadUsers = debounce(() => loadUsers(), 500)
 
 // Methods
 const loadStats = async () => {
   try {
-    // TODO: Replace with actual API call
-    // const response = await modApiService.getStats()
-    // stats.value = response
-    
-    // Mock data for now
-    stats.value = {
-      totalPosts: posts.value.length,
-      totalComments: comments.value.length,
-      reportedPosts: posts.value.filter(p => p.isReported).length,
-      reportedComments: comments.value.filter(c => c.isReported).length
-    }
+    const response = await modApiService.getStats()
+    stats.value = response
   } catch (error) {
     showError('Failed to load statistics')
   }
 }
 
-const loadPosts = async () => {
+const loadPosts = async (append = false) => {
   try {
-    isLoadingPosts.value = true
-    // TODO: Replace with actual API call
-    // const response = await modApiService.getPosts()
-    // posts.value = response.posts
-    
-    // Mock data for now
-    posts.value = [
-      {
-        id: 1,
-        title: "Sample Political Discussion",
-        body: "This is a sample post body with some political content...",
-        url: "https://example.com/news-article",
-        author: "user123",
-        authorBanned: false,
-        createdAt: new Date().toISOString(),
-        votes: 15,
-        commentCount: 8,
-        isReported: true
-      },
-      {
-        id: 2,
-        title: "Another Post Title",
-        body: "Another post with different content...",
-        author: "political_user",
-        authorBanned: true,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        votes: 5,
-        commentCount: 3,
-        isReported: false
-      }
-    ]
+    if (!append) {
+      isLoadingPosts.value = true
+      postsPagination.value.page = 1
+    } else {
+      isLoadingMorePosts.value = true
+      postsPagination.value.page++
+    }
+
+    const response = await modApiService.getPosts({
+      page: postsPagination.value.page,
+      limit: 20,
+      search: postsFilter.value.search || undefined,
+      author: postsFilter.value.author || undefined,
+      sortBy: postsFilter.value.sortBy,
+      status: postsFilter.value.status
+    })
+
+    if (append) {
+      posts.value = [...posts.value, ...response.posts]
+    } else {
+      posts.value = response.posts
+      selectedPosts.value = []
+    }
+
+    postsPagination.value.hasMore = response.pagination.hasMore
   } catch (error) {
     showError('Failed to load posts')
   } finally {
     isLoadingPosts.value = false
+    isLoadingMorePosts.value = false
   }
 }
 
-const loadComments = async () => {
+const loadComments = async (append = false) => {
   try {
-    isLoadingComments.value = true
-    // TODO: Replace with actual API call
-    // const response = await modApiService.getComments()
-    // comments.value = response.comments
-    
-    // Mock data for now
-    comments.value = [
-      {
-        id: 1,
-        body: "This is a sample comment that might be controversial...",
-        author: "commenter1",
-        authorBanned: false,
-        postId: 1,
-        postTitle: "Sample Political Discussion",
-        createdAt: new Date().toISOString(),
-        votes: 3,
-        isReported: true
-      },
-      {
-        id: 2,
-        body: "Another comment with different content and opinions...",
-        author: "user456",
-        authorBanned: false,
-        postId: 1,
-        postTitle: "Sample Political Discussion",
-        createdAt: new Date(Date.now() - 3600000).toISOString(),
-        votes: -2,
-        isReported: false
-      }
-    ]
+    if (!append) {
+      isLoadingComments.value = true
+      commentsPagination.value.page = 1
+    } else {
+      isLoadingMoreComments.value = true
+      commentsPagination.value.page++
+    }
+
+    const response = await modApiService.getComments({
+      page: commentsPagination.value.page,
+      limit: 20,
+      search: commentsFilter.value.search || undefined,
+      author: commentsFilter.value.author || undefined,
+      sortBy: commentsFilter.value.sortBy,
+      status: commentsFilter.value.status
+    })
+
+    if (append) {
+      comments.value = [...comments.value, ...response.comments]
+    } else {
+      comments.value = response.comments
+      selectedComments.value = []
+    }
+
+    commentsPagination.value.hasMore = response.pagination.hasMore
   } catch (error) {
     showError('Failed to load comments')
   } finally {
     isLoadingComments.value = false
+    isLoadingMoreComments.value = false
   }
 }
 
-const loadUsers = async () => {
+const loadUsers = async (append = false) => {
   try {
-    // TODO: Replace with actual API call
-    // const response = await modApiService.getUsers()
-    // users.value = response.users
-    
-    // Mock data for now
-    users.value = [
-      {
-        id: 1,
-        username: "user123",
-        createdAt: new Date(Date.now() - 2592000000).toISOString(),
-        isBanned: false,
-        role: "user",
-        postCount: 5,
-        commentCount: 12
-      },
-      {
-        id: 2,
-        username: "political_user",
-        createdAt: new Date(Date.now() - 5184000000).toISOString(),
-        isBanned: true,
-        role: "user",
-        postCount: 2,
-        commentCount: 8
-      },
-      {
-        id: 3,
-        username: "moderator1",
-        createdAt: new Date(Date.now() - 7776000000).toISOString(),
-        isBanned: false,
-        role: "moderator",
-        postCount: 0,
-        commentCount: 3
-      }
-    ]
+    if (!append) {
+      isLoadingUsers.value = true
+      usersPagination.value.page = 1
+    } else {
+      isLoadingMoreUsers.value = true
+      usersPagination.value.page++
+    }
+
+    const response = await modApiService.getUsers({
+      page: usersPagination.value.page,
+      limit: 20,
+      search: userSearch.value || undefined
+    })
+
+    if (append) {
+      users.value = [...users.value, ...response.users]
+    } else {
+      users.value = response.users
+    }
+
+    usersPagination.value.hasMore = response.pagination.hasMore
   } catch (error) {
     showError('Failed to load users')
+  } finally {
+    isLoadingUsers.value = false
+    isLoadingMoreUsers.value = false
   }
 }
 
-const loadMorePosts = async () => {
-  // TODO: Implement pagination
-  await loadPosts()
-}
-
-const loadMoreComments = async () => {
-  // TODO: Implement pagination  
-  await loadComments()
-}
+const loadMorePosts = () => loadPosts(true)
+const loadMoreComments = () => loadComments(true)
+const loadMoreUsers = () => loadUsers(true)
 
 const viewPost = (postId: number) => {
   router.push(`/post/${postId}`)
@@ -895,19 +816,8 @@ const viewPost = (postId: number) => {
 
 const viewUserProfile = async (username: string) => {
   try {
-    // TODO: Replace with actual API call
-    // const response = await modApiService.getUserProfile(username)
-    // selectedUserProfile.value = response
-    
-    // Mock data for now
-    const user = users.value.find(u => u.username === username)
-    if (user) {
-      selectedUserProfile.value = {
-        ...user,
-        posts: posts.value.filter(p => p.author === username),
-        comments: comments.value.filter(c => c.author === username)
-      }
-    }
+    const response = await modApiService.getUserProfile(username)
+    selectedUserProfile.value = response
   } catch (error) {
     showError('Failed to load user profile')
   }
@@ -931,11 +841,9 @@ const deletePost = (postId: number) => {
 
 const confirmDeletePost = async (postId: number) => {
   try {
-    // TODO: Replace with actual API call
-    // await modApiService.deletePost(postId)
-    
-    posts.value = posts.value.filter(p => p.id !== postId)
-    selectedPosts.value = selectedPosts.value.filter(id => id !== postId)
+    await modApiService.deletePost(postId)
+    await loadPosts()
+    await loadStats()
     showSuccess('Post deleted successfully')
   } catch (error) {
     showError('Failed to delete post')
@@ -956,11 +864,9 @@ const deleteComment = (commentId: number) => {
 
 const confirmDeleteComment = async (commentId: number) => {
   try {
-    // TODO: Replace with actual API call
-    // await modApiService.deleteComment(commentId)
-    
-    comments.value = comments.value.filter(c => c.id !== commentId)
-    selectedComments.value = selectedComments.value.filter(id => id !== commentId)
+    await modApiService.deleteComment(commentId)
+    await loadComments()
+    await loadStats()
     showSuccess('Comment deleted successfully')
   } catch (error) {
     showError('Failed to delete comment')
@@ -981,20 +887,11 @@ const banUser = (username: string) => {
 
 const confirmBanUser = async (username: string) => {
   try {
-    // TODO: Replace with actual API call
-    // await modApiService.banUser(username)
-    
-    // Update local data
-    users.value = users.value.map(u => 
-      u.username === username ? { ...u, isBanned: true } : u
-    )
-    posts.value = posts.value.map(p => 
-      p.author === username ? { ...p, authorBanned: true } : p
-    )
-    comments.value = comments.value.map(c => 
-      c.author === username ? { ...c, authorBanned: true } : c
-    )
-    
+    await modApiService.banUser(username)
+    await loadPosts()
+    await loadComments() 
+    await loadUsers()
+    await loadStats()
     showSuccess(`User ${username} has been banned`)
   } catch (error) {
     showError('Failed to ban user')
@@ -1015,20 +912,11 @@ const unbanUser = (username: string) => {
 
 const confirmUnbanUser = async (username: string) => {
   try {
-    // TODO: Replace with actual API call
-    // await modApiService.unbanUser(username)
-    
-    // Update local data
-    users.value = users.value.map(u => 
-      u.username === username ? { ...u, isBanned: false } : u
-    )
-    posts.value = posts.value.map(p => 
-      p.author === username ? { ...p, authorBanned: false } : p
-    )
-    comments.value = comments.value.map(c => 
-      c.author === username ? { ...c, authorBanned: false } : c
-    )
-    
+    await modApiService.unbanUser(username)
+    await loadPosts()
+    await loadComments()
+    await loadUsers()
+    await loadStats()
     showSuccess(`User ${username} has been unbanned`)
   } catch (error) {
     showError('Failed to unban user')
@@ -1049,13 +937,11 @@ const deleteAllUserContent = (username: string) => {
 
 const confirmDeleteAllUserContent = async (username: string) => {
   try {
-    // TODO: Replace with actual API call
-    // await modApiService.deleteAllUserContent(username)
-    
-    posts.value = posts.value.filter(p => p.author !== username)
-    comments.value = comments.value.filter(c => c.author !== username)
-    
-    showSuccess(`All content by ${username} has been deleted`)
+    const response = await modApiService.deleteAllUserContent(username)
+    await loadPosts()
+    await loadComments()
+    await loadStats()
+    showSuccess(`Deleted ${response.deletedPosts} posts and ${response.deletedComments} comments by ${username}`)
   } catch (error) {
     showError('Failed to delete user content')
   } finally {
@@ -1077,12 +963,9 @@ const bulkDeletePosts = () => {
 
 const confirmBulkDeletePosts = async () => {
   try {
-    // TODO: Replace with actual API call
-    // await modApiService.bulkDeletePosts(selectedPosts.value)
-    
-    posts.value = posts.value.filter(p => !selectedPosts.value.includes(p.id))
-    selectedPosts.value = []
-    
+    await modApiService.bulkDeletePosts(selectedPosts.value)
+    await loadPosts()
+    await loadStats()
     showSuccess('Selected posts deleted successfully')
   } catch (error) {
     showError('Failed to delete posts')
@@ -1105,12 +988,9 @@ const bulkDeleteComments = () => {
 
 const confirmBulkDeleteComments = async () => {
   try {
-    // TODO: Replace with actual API call
-    // await modApiService.bulkDeleteComments(selectedComments.value)
-    
-    comments.value = comments.value.filter(c => !selectedComments.value.includes(c.id))
-    selectedComments.value = []
-    
+    await modApiService.bulkDeleteComments(selectedComments.value)
+    await loadComments()
+    await loadStats()
     showSuccess('Selected comments deleted successfully')
   } catch (error) {
     showError('Failed to delete comments')
@@ -1123,14 +1003,20 @@ const confirmAction = () => {
   confirmModal.value.action()
 }
 
-// Initialize data on mount
-onMounted(async () => {
-  await Promise.all([
-    loadPosts(),
-    loadComments(), 
+// Watch for tab changes to load data
+watch(activeTab, (newTab) => {
+  if (newTab === 'posts' && posts.value.length === 0) {
+    loadPosts()
+  } else if (newTab === 'comments' && comments.value.length === 0) {
+    loadComments()
+  } else if (newTab === 'users' && users.value.length === 0) {
     loadUsers()
-  ])
-  loadStats()
+  }
 })
 
+// Initialize data on mount
+onMounted(async () => {
+  await loadStats()
+  await loadPosts() // Load posts by default
+})
 </script>

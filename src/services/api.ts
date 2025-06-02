@@ -163,5 +163,173 @@ class ApiService {
   }
 }
 
+// Moderation API Service
+class ModApiService {
+  private baseUrl = `${import.meta.env.VITE_API_BASE_URL}/api/mod`
+
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('token')
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
+  private async request<T>(
+    endpoint: string, 
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+        ...options.headers,
+      },
+      ...options,
+    }
+
+    try {
+      const response = await fetch(url, config)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error(`Mod API request failed: ${endpoint}`, error)
+      throw error
+    }
+  }
+
+  // Stats
+  async getStats(): Promise<{
+    totalPosts: number
+    totalComments: number
+    reportedPosts: number
+    reportedComments: number
+    totalUsers: number
+    bannedUsers: number
+  }> {
+    return this.request('/stats')
+  }
+
+  // Posts
+  async getPosts(params: {
+    page?: number
+    limit?: number
+    search?: string
+    author?: string
+    sortBy?: string
+    status?: string
+  } = {}): Promise<{
+    posts: any[]
+    pagination: { page: number; limit: number; hasMore: boolean }
+  }> {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) searchParams.append(key, value.toString())
+    })
+    return this.request(`/posts?${searchParams}`)
+  }
+
+  async deletePost(id: number): Promise<{ message: string }> {
+    return this.request(`/posts/${id}`, { method: 'DELETE' })
+  }
+
+  async bulkDeletePosts(postIds: number[]): Promise<{ message: string; deletedCount: number }> {
+    return this.request('/posts/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ postIds })
+    })
+  }
+
+  // Comments
+  async getComments(params: {
+    page?: number
+    limit?: number
+    search?: string
+    author?: string
+    sortBy?: string
+    status?: string
+  } = {}): Promise<{
+    comments: any[]
+    pagination: { page: number; limit: number; hasMore: boolean }
+  }> {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) searchParams.append(key, value.toString())
+    })
+    return this.request(`/comments?${searchParams}`)
+  }
+
+  async deleteComment(id: number): Promise<{ message: string }> {
+    return this.request(`/comments/${id}`, { method: 'DELETE' })
+  }
+
+  async bulkDeleteComments(commentIds: number[]): Promise<{ message: string; deletedCount: number }> {
+    return this.request('/comments/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ commentIds })
+    })
+  }
+
+  // Users
+  async getUsers(params: {
+    page?: number
+    limit?: number
+    search?: string
+    sortBy?: string
+  } = {}): Promise<{
+    users: any[]
+    pagination: { page: number; limit: number; hasMore: boolean }
+  }> {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) searchParams.append(key, value.toString())
+    })
+    return this.request(`/users?${searchParams}`)
+  }
+
+  async getUserProfile(username: string): Promise<any> {
+    return this.request(`/users/${username}`)
+  }
+
+  async banUser(username: string): Promise<{ message: string }> {
+    return this.request(`/users/${username}/ban`, { method: 'POST' })
+  }
+
+  async unbanUser(username: string): Promise<{ message: string }> {
+    return this.request(`/users/${username}/unban`, { method: 'POST' })
+  }
+
+  async deleteAllUserContent(username: string): Promise<{ 
+    message: string
+    deletedPosts: number
+    deletedComments: number 
+  }> {
+    return this.request(`/users/${username}/content`, { method: 'DELETE' })
+  }
+
+  // Reports
+  async getReports(params: {
+    page?: number
+    limit?: number
+    status?: string
+  } = {}): Promise<{
+    reports: any[]
+    pagination: { page: number; limit: number; hasMore: boolean }
+  }> {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) searchParams.append(key, value.toString())
+    })
+    return this.request(`/reports?${searchParams}`)
+  }
+
+  async dismissReport(id: number): Promise<{ message: string }> {
+    return this.request(`/reports/${id}/dismiss`, { method: 'POST' })
+  }
+}
+
 export const apiService = new ApiService()
+export const modApiService = new ModApiService()
 export type { User, Post, Comment, AuthResponse, PostsResponse, PostDetailResponse }
