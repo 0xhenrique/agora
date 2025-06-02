@@ -105,21 +105,36 @@
     <div v-if="showReportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h2 class="text-xl font-semibold mb-4">Report Content</h2>
-        <p class="text-gray-700 mb-6">Are you sure you want to report this {{ reportType }}?</p>
-        <div class="flex space-x-4">
-          <button 
-            @click="confirmReport"
-            class="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-          >
-            Report
-          </button>
-          <button 
-            @click="cancelReport"
-            class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-        </div>
+        <form @submit.prevent="confirmReport">
+          <div class="space-y-4">
+            <p class="text-gray-700">Are you sure you want to report this {{ reportType }}?</p>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
+              <textarea 
+                v-model="reportReason"
+                rows="3"
+                placeholder="Please describe why you're reporting this content..."
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              ></textarea>
+            </div>
+            <div class="flex space-x-4">
+              <button 
+                type="submit"
+                class="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                :disabled="isSubmittingReport"
+              >
+                {{ isSubmittingReport ? 'Reporting...' : 'Report' }}
+              </button>
+              <button 
+                type="button"
+                @click="cancelReport"
+                class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -176,6 +191,8 @@ const isLoading = ref(false)
 const showReportModal = ref(false)
 const reportType = ref<'post' | 'comment'>('post')
 const reportItemId = ref<number | null>(null)
+const reportReason = ref('')
+const isSubmittingReport = ref(false)
 const hoveredComment = ref<Comment | null>(null)
 const tooltipPosition = ref({ x: 0, y: 0 })
 
@@ -277,25 +294,51 @@ const vote = async (itemId: number, voteType: 'up' | 'down', itemType: 'post' | 
   }
 }
 
-// Utility methods
+// Report methods
 const showReport = (itemId: number, type: 'post' | 'comment') => {
+  if (!currentUser.value) {
+    showLogin.value = true
+    return
+  }
+  
   reportItemId.value = itemId
   reportType.value = type
+  reportReason.value = ''
   showReportModal.value = true
 }
 
-const confirmReport = () => {
-  // TODO: Implement when API endpoint is ready
-  showSuccess(`${reportType.value} reported successfully`)
-  showReportModal.value = false
-  reportItemId.value = null
+const confirmReport = async () => {
+  if (!reportItemId.value || !currentUser.value) return
+  
+  isSubmittingReport.value = true
+  try {
+    await apiService.reportContent(
+      reportItemId.value, 
+      reportType.value, 
+      reportReason.value.trim() || undefined
+    )
+    showSuccess(`${reportType.value} reported successfully`)
+    showReportModal.value = false
+    reportItemId.value = null
+    reportReason.value = ''
+  } catch (error: any) {
+    if (error.message.includes('409')) {
+      showError('You have already reported this content')
+    } else {
+      showError('Failed to submit report')
+    }
+  } finally {
+    isSubmittingReport.value = false
+  }
 }
 
 const cancelReport = () => {
   showReportModal.value = false
   reportItemId.value = null
+  reportReason.value = ''
 }
 
+// Utility methods
 const showCommentPreview = (commentId: number, event: MouseEvent) => {
   const comment = allComments.value.find(c => c.id === commentId)
   if (comment) {

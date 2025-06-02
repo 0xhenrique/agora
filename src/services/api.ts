@@ -1,6 +1,7 @@
 interface User {
   id: number
   username: string
+  role?: string
 }
 
 interface Post {
@@ -159,6 +160,18 @@ class ApiService {
     return this.request(`/votes/status`, {
       method: 'POST',
       body: JSON.stringify({ items }),
+    })
+  }
+
+  // Reports methods
+  async reportContent(
+    itemId: number,
+    itemType: 'post' | 'comment',
+    reason?: string
+  ): Promise<{ message: string }> {
+    return this.request(`/reports`, {
+      method: 'POST',
+      body: JSON.stringify({ itemId, itemType, reason }),
     })
   }
 }
