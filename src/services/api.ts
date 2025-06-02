@@ -57,10 +57,8 @@ interface VoteStatusResponse {
 }
 
 class ApiService {
-  private baseUrl = import.meta.env.PROD ? 
-	import.meta.env.VITE_API_BASE_URL : 
-	'/api'  // Use proxy in development
-  
+  private baseUrl = `${import.meta.env.VITE_API_BASE_URL}/api`
+
   private getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem('token')
     return token ? { Authorization: `Bearer ${token}` } : {}
