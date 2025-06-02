@@ -1,5 +1,9 @@
 <template>
-  <div v-if="post" class="space-y-6">
+  <div v-if="isLoading" class="text-center py-8">
+    <div class="text-gray-600">Loading post...</div>
+  </div>
+
+  <div v-else-if="post" class="space-y-6">
     <!-- Breadcrumb -->
     <div class="text-sm text-gray-600">
       <router-link to="/" class="hover:text-blue-600">Home</router-link>
@@ -13,17 +17,19 @@
         <!-- Vote Controls -->
         <div class="flex flex-col items-center space-y-1 mt-1">
           <button 
-            @click="vote(post.id, 'up', 'post')"
-            :class="getUserVote(post.id, 'post') === 'up' ? 'text-orange-600' : 'text-gray-400'"
+            @click="handleVote(post.id, 'up', 'post')"
+            :class="post.userVote === 'up' ? 'text-orange-600' : 'text-gray-400'"
             class="hover:text-orange-600"
+            :disabled="isVotingPost"
           >
             ▲
           </button>
           <span class="text-sm font-medium">{{ post.votes }}</span>
           <button 
-            @click="vote(post.id, 'down', 'post')"
-            :class="getUserVote(post.id, 'post') === 'down' ? 'text-blue-600' : 'text-gray-400'"
+            @click="handleVote(post.id, 'down', 'post')"
+            :class="post.userVote === 'down' ? 'text-blue-600' : 'text-gray-400'"
             class="hover:text-blue-600"
+            :disabled="isVotingPost"
           >
             ▼
           </button>
@@ -73,8 +79,12 @@
           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         ></textarea>
-        <button type="submit" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-          Post Comment
+        <button 
+          type="submit" 
+          class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          :disabled="isSubmittingComment"
+        >
+          {{ isSubmittingComment ? 'Posting...' : 'Post Comment' }}
         </button>
       </form>
     </div>
@@ -90,28 +100,35 @@
       </button>
     </div>
 
-    <!-- Comments List (4chan style - flat) -->
+    <!-- Comments List -->
     <div class="space-y-3">
       <div 
-        v-for="comment in postComments" 
+        v-for="comment in comments" 
         :key="comment.id"
-        class="bg-white rounded border border-gray-200 p-3"
+        :data-comment-id="comment.id"
+        class="bg-white rounded border border-gray-200 p-3 transition-all duration-300"
+        :class="{ 
+          'ring-2 ring-yellow-400 bg-yellow-50': highlightedCommentId === comment.id,
+          'shadow-lg': highlightedCommentId === comment.id
+        }"
       >
         <div class="flex items-start space-x-3">
           <!-- Vote Controls -->
           <div class="flex flex-col items-center space-y-1">
             <button 
-              @click="vote(comment.id, 'up', 'comment')"
-              :class="getUserVote(comment.id, 'comment') === 'up' ? 'text-orange-600' : 'text-gray-400'"
+              @click="handleVote(comment.id, 'up', 'comment')"
+              :class="comment.userVote === 'up' ? 'text-orange-600' : 'text-gray-400'"
               class="hover:text-orange-600 text-sm"
+              :disabled="isVoting[`comment_${comment.id}`]"
             >
               ▲
             </button>
             <span class="text-xs">{{ comment.votes }}</span>
             <button 
-              @click="vote(comment.id, 'down', 'comment')"
-              :class="getUserVote(comment.id, 'comment') === 'down' ? 'text-blue-600' : 'text-gray-400'"
+              @click="handleVote(comment.id, 'down', 'comment')"
+              :class="comment.userVote === 'down' ? 'text-blue-600' : 'text-gray-400'"
               class="hover:text-blue-600 text-sm"
+              :disabled="isVoting[`comment_${comment.id}`]"
             >
               ▼
             </button>
@@ -138,20 +155,12 @@
             </div>
             
             <div 
-              v-if="comment.replyToId" 
-              class="text-sm text-green-600 mb-1"
+              class="text-gray-700 text-sm whitespace-pre-wrap"
+              v-html="parseCommentBody(comment.body)"
+              @click="handleQuoteInteraction"
+              @mouseenter="handleQuoteInteraction" 
+              @mouseleave="handleQuoteInteraction"
             >
-              <span 
-                class="cursor-pointer hover:underline"
-                @mouseenter="(e) => showCommentPreview(comment.replyToId!, e)"
-                @mouseleave="hideCommentPreview"
-              >
-                >>{{ comment.replyToId }}
-              </span>
-            </div>
-            
-            <div class="text-gray-700 text-sm whitespace-pre-wrap">
-              {{ comment.body }}
             </div>
           </div>
         </div>
@@ -172,22 +181,29 @@
 <script setup lang="ts">
 import { ref, computed, inject, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { apiService, type Post, type Comment } from '../services/api'
 
 const route = useRoute()
 const router = useRouter()
 
-const posts = inject('posts') as any
-const comments = inject('comments') as any
 const currentUser = inject('currentUser') as any
 const showLogin = inject('showLogin') as any
+const allComments = inject('allComments') as any
 const submitComment = inject('submitComment') as Function
 const vote = inject('vote') as Function
-const getUserVote = inject('getUserVote') as Function
 const showReport = inject('showReport') as Function
 const sharePost = inject('sharePost') as Function
 const showCommentPreview = inject('showCommentPreview') as Function
 const hideCommentPreview = inject('hideCommentPreview') as Function
 const formatDate = inject('formatDate') as Function
+const showError = inject('showError') as Function
+
+const post = ref<Post | null>(null)
+const comments = ref<Comment[]>([])
+const isLoading = ref(true)
+const isSubmittingComment = ref(false)
+const isVotingPost = ref(false)
+const isVoting = ref<Record<string, boolean>>({})
 
 const commentForm = ref({
   body: ''
@@ -195,38 +211,91 @@ const commentForm = ref({
 
 const postId = computed(() => parseInt(route.params.id as string))
 
-const post = computed(() => {
-  const foundPost = posts.value.find((p: any) => p.id === postId.value)
-  if (!foundPost) {
-    // Redirect to home if post doesn't exist
-    router.push('/')
+const loadPost = async (showLoadingState = true) => {
+  if (showLoadingState) {
+    isLoading.value = true
   }
-  return foundPost
-})
+  
+  try {
+    const response = await apiService.getPost(postId.value)
+    post.value = response.post
+    comments.value = response.comments
+    
+    // Update global comments for tooltip preview
+    allComments.value = response.comments
+  } catch (error) {
+    showError()
+    router.push('/')
+  } finally {
+    if (showLoadingState) {
+      isLoading.value = false
+    }
+  }
+}
 
-const postComments = computed(() => 
-  comments.value.filter((c: any) => c.postId === postId.value)
-)
-
-const handleSubmitComment = () => {
+const handleSubmitComment = async () => {
   if (!currentUser.value) {
     showLogin.value = true
     return
   }
   
-  const replyToId = extractReplyId(commentForm.value.body)
-  
-  submitComment(postId.value, {
-    body: commentForm.value.body,
-    replyToId
-  })
-  
-  commentForm.value = { body: '' }
+  isSubmittingComment.value = true
+  try {
+    // Send the full body as-is, no parsing needed
+    const newComment = await submitComment(postId.value, {
+      body: commentForm.value.body
+    })
+    
+    // Refresh the post data instead of manually adding to avoid duplication
+    await loadPost(false)
+    
+    commentForm.value = { body: '' }
+  } catch (error) {
+    // Error already handled in submitComment
+  } finally {
+    isSubmittingComment.value = false
+  }
 }
 
-const extractReplyId = (body: string): number | undefined => {
-  const match = body.match(/>>(\d+)/)
-  return match ? parseInt(match[1]) : undefined
+const parseCommentBody = (body: string): string => {
+  return body.replace(/>>(\d+)/g, (match, commentId) => {
+    const id = parseInt(commentId)
+    const targetComment = comments.value.find(c => c.id === id)
+    if (targetComment) {
+      return `<span class="text-green-600 hover:underline cursor-pointer quote-link" data-comment-id="${id}">${match}</span>`
+    }
+    return `<span class="text-green-600">${match}</span>`
+  })
+}
+
+const highlightedCommentId = ref<number | null>(null)
+
+const handleQuoteInteraction = (event: Event) => {
+  const target = event.target as HTMLElement
+  if (target.classList.contains('quote-link')) {
+    const commentId = parseInt(target.dataset.commentId || '0')
+    if (commentId) {
+      if (event.type === 'mouseenter') {
+        showCommentPreview(commentId, event as MouseEvent)
+      } else if (event.type === 'mouseleave') {
+        hideCommentPreview()
+      } else if (event.type === 'click') {
+        // Highlight the target comment
+        highlightedCommentId.value = commentId
+        
+        // Scroll to the comment
+        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`)?.closest('.bg-white')
+        if (commentElement) {
+          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+        
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          highlightedCommentId.value = null
+        }, 5000)
+      }
+    }
+  }
 }
 
 const replyToComment = (commentId: number) => {
@@ -241,10 +310,41 @@ const replyToComment = (commentId: number) => {
   }
 }
 
-onMounted(() => {
-  // Check if post exists, redirect if not
-  if (!post.value) {
-    router.push('/')
+const handleVote = async (itemId: number, voteType: 'up' | 'down', itemType: 'post' | 'comment') => {
+  if (itemType === 'post') {
+    isVotingPost.value = true
+  } else {
+    const key = `${itemType}_${itemId}`
+    isVoting.value[key] = true
   }
+  
+  try {
+    const response = await vote(itemId, voteType, itemType)
+    if (response) {
+      if (itemType === 'post' && post.value) {
+        post.value.votes = response.votes
+        post.value.userVote = response.userVote
+      } else {
+        const comment = comments.value.find(c => c.id === itemId)
+        if (comment) {
+          comment.votes = response.votes
+          comment.userVote = response.userVote
+        }
+      }
+    }
+  } catch (error) {
+    // Error already handled in the vote function
+  } finally {
+    if (itemType === 'post') {
+      isVotingPost.value = false
+    } else {
+      const key = `${itemType}_${itemId}`
+      delete isVoting.value[key]
+    }
+  }
+}
+
+onMounted(() => {
+  loadPost()
 })
 </script>

@@ -50,7 +50,7 @@
     <!-- Login Modal -->
     <div v-if="showLogin" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 class="text-xl font-semibold mb-4">Login / Register</h2>
+        <h2 class="text-xl font-semibold mb-4">{{ isRegistering ? 'Register' : 'Login' }}</h2>
         <form @submit.prevent="handleAuth">
           <div class="space-y-4">
             <div>
@@ -72,8 +72,12 @@
               >
             </div>
             <div class="flex space-x-4">
-              <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                Login/Register
+              <button 
+                type="submit" 
+                class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                :disabled="isLoading"
+              >
+                {{ isLoading ? 'Loading...' : (isRegistering ? 'Register' : 'Login') }}
               </button>
               <button 
                 type="button"
@@ -81,6 +85,15 @@
                 class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
               >
                 Cancel
+              </button>
+            </div>
+            <div class="text-center">
+              <button 
+                type="button"
+                @click="isRegistering = !isRegistering"
+                class="text-sm text-blue-600 hover:text-blue-800"
+              >
+                {{ isRegistering ? 'Already have an account? Login' : 'Need an account? Register' }}
               </button>
             </div>
           </div>
@@ -122,58 +135,52 @@
         <div class="text-xs text-gray-500 mt-1">{{ formatDate(hoveredComment.createdAt) }}</div>
       </div>
     </div>
+
+    <!-- Toast Notifications -->
+    <div class="fixed top-4 right-4 space-y-2 z-50">
+      <div 
+        v-for="toast in toasts"
+        :key="toast.id"
+        :class="{
+          'bg-red-500': toast.type === 'error',
+          'bg-green-500': toast.type === 'success',
+          'bg-blue-500': toast.type === 'info'
+        }"
+        class="px-4 py-2 rounded text-white shadow-lg max-w-sm"
+      >
+        <div class="flex justify-between items-center">
+          <span>{{ toast.message }}</span>
+          <button @click="removeToast(toast.id)" class="ml-2 text-white hover:text-gray-200">
+            ×
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, provide } from 'vue'
+import { ref, provide, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { apiService, type User, type Post, type Comment } from './services/api'
+import { useToast } from './services/toast'
 
-// Types
-interface User {
-  id: number
-  username: string
-}
-
-interface Post {
-  id: number
-  title: string
-  url?: string
-  imageUrl?: string
-  body?: string
-  author: string
-  createdAt: Date
-  votes: number
-  commentCount: number
-}
-
-interface Comment {
-  id: number
-  postId: number
-  author: string
-  body: string
-  replyToId?: number
-  createdAt: Date
-  votes: number
-}
-
-interface Vote {
-  itemId: number
-  itemType: 'post' | 'comment'
-  type: 'up' | 'down'
-  userId: number
-}
+const router = useRouter()
+const { toasts, showError, showSuccess, removeToast } = useToast()
 
 // Global state
 const currentUser = ref<User | null>(null)
 const showLogin = ref(false)
+const isRegistering = ref(false)
+const isLoading = ref(false)
 const showReportModal = ref(false)
 const reportType = ref<'post' | 'comment'>('post')
 const reportItemId = ref<number | null>(null)
 const hoveredComment = ref<Comment | null>(null)
 const tooltipPosition = ref({ x: 0, y: 0 })
 
-const router = useRouter()
+// Mock data for comments (for preview tooltip functionality)
+const allComments = ref<Comment[]>([])
 
 // Forms
 const authForm = ref({
@@ -181,181 +188,96 @@ const authForm = ref({
   password: ''
 })
 
-// Mock data
-const users = ref<User[]>([
-  { id: 1, username: 'testuser1' },
-  { id: 2, username: 'testuser2' },
-  { id: 3, username: 'testuser3' }
-])
-
-const posts = ref<Post[]>([
-  {
-    id: 1,
-    title: 'Test Post About Current Politics',
-    body: 'This is a test post discussing current political events. What do you think about the recent developments?',
-    author: 'testuser1',
-    createdAt: new Date('2025-06-01'),
-    votes: 5,
-    commentCount: 3
-  },
-  {
-    id: 2,
-    title: 'Link to Political Article',
-    url: 'https://example.com/political-article',
-    body: 'Found this interesting article, thoughts?',
-    author: 'testuser2',
-    createdAt: new Date('2025-06-01'),
-    votes: 12,
-    commentCount: 7
-  },
-  {
-    id: 3,
-    title: 'Image Post Example',
-    imageUrl: 'https://www.purina.co.uk/sites/default/files/styles/square_medium_440x440/public/2022-06/Sphynx.1.jpg?h=ee36b89e&itok=2fNViXNl',
-    body: 'Check out this political cartoon',
-    author: 'testuser3',
-    createdAt: new Date('2025-06-02'),
-    votes: -2,
-    commentCount: 15
+// Authentication methods
+const handleAuth = async () => {
+  isLoading.value = true
+  try {
+    const response = isRegistering.value 
+      ? await apiService.register(authForm.value.username, authForm.value.password)
+      : await apiService.login(authForm.value.username, authForm.value.password)
+    
+    localStorage.setItem('token', response.token)
+    currentUser.value = response.user
+    showLogin.value = false
+    isRegistering.value = false
+    authForm.value = { username: '', password: '' }
+    showSuccess(response.message)
+  } catch (error) {
+    showError()
+  } finally {
+    isLoading.value = false
   }
-])
-
-const comments = ref<Comment[]>([
-  {
-    id: 1,
-    postId: 1,
-    author: 'testuser2',
-    body: 'I agree with your perspective on this issue.',
-    createdAt: new Date('2025-06-01'),
-    votes: 3
-  },
-  {
-    id: 2,
-    postId: 1,
-    author: 'testuser3',
-    body: 'Actually, I think you\'re missing an important point here.',
-    replyToId: 1,
-    createdAt: new Date('2025-06-01'),
-    votes: 1
-  },
-  {
-    id: 3,
-    postId: 1,
-    author: 'testuser1',
-    body: 'Thanks for the discussion, both of you make valid points.',
-    createdAt: new Date('2025-06-02'),
-    votes: 2
-  }
-])
-
-const votes = ref<Vote[]>([])
-
-// Methods
-const handleAuth = () => {
-  let user = users.value.find(u => u.username === authForm.value.username)
-  if (!user) {
-    user = {
-      id: users.value.length + 1,
-      username: authForm.value.username
-    }
-    users.value.push(user)
-  }
-  currentUser.value = user
-  showLogin.value = false
-  authForm.value = { username: '', password: '' }
 }
 
 const logout = () => {
+  localStorage.removeItem('token')
   currentUser.value = null
+  showSuccess('Logged out successfully')
 }
 
-const submitPost = (postData: { title: string; url?: string; imageUrl?: string; body?: string }) => {
-  if (!currentUser.value) return
-  
-  const post: Post = {
-    id: posts.value.length + 1,
-    title: postData.title,
-    url: postData.url || undefined,
-    imageUrl: postData.imageUrl || undefined,
-    body: postData.body || undefined,
-    author: currentUser.value.username,
-    createdAt: new Date(),
-    votes: 0,
-    commentCount: 0
+const verifyAuth = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return
+
+  try {
+    const response = await apiService.verifyToken()
+    currentUser.value = response.user
+  } catch (error) {
+    localStorage.removeItem('token')
+    currentUser.value = null
+  }
+}
+
+// Post and comment methods
+const submitPost = async (postData: { title: string; url?: string; imageUrl?: string; body?: string }) => {
+  if (!currentUser.value) {
+    showLogin.value = true
+    return
   }
   
-  posts.value.unshift(post)
-  router.push('/')
+  try {
+    const response = await apiService.createPost(postData)
+    showSuccess(response.message)
+    router.push('/')
+  } catch (error) {
+    showError()
+  }
 }
 
-const submitComment = (postId: number, commentData: { body: string; replyToId?: number }) => {
-  if (!currentUser.value) return
-  
-  const comment: Comment = {
-    id: comments.value.length + 1,
-    postId: postId,
-    author: currentUser.value.username,
-    body: commentData.body,
-    replyToId: commentData.replyToId,
-    createdAt: new Date(),
-    votes: 0
+const submitComment = async (postId: number, commentData: { body: string }) => {
+  if (!currentUser.value) {
+    showLogin.value = true
+    return
   }
   
-  comments.value.push(comment)
-  
-  // Update comment count
-  const post = posts.value.find(p => p.id === postId)
-  if (post) post.commentCount++
+  try {
+    const response = await apiService.createComment({
+      postId,
+      body: commentData.body
+    })
+    showSuccess(response.message)
+    return response.comment
+  } catch (error) {
+    showError()
+    throw error
+  }
 }
 
-const vote = (itemId: number, voteType: 'up' | 'down', itemType: 'post' | 'comment') => {
+const vote = async (itemId: number, voteType: 'up' | 'down', itemType: 'post' | 'comment') => {
   if (!currentUser.value) {
     showLogin.value = true
     return
   }
 
-  const existingVoteIndex = votes.value.findIndex(v => 
-    v.itemId === itemId && v.itemType === itemType && v.userId === currentUser.value!.id
-  )
-
-  let voteDelta = 0
-
-  if (existingVoteIndex >= 0) {
-    const existingVote = votes.value[existingVoteIndex]
-    if (existingVote.type === voteType) {
-      votes.value.splice(existingVoteIndex, 1)
-      voteDelta = voteType === 'up' ? -1 : 1
-    } else {
-      existingVote.type = voteType
-      voteDelta = voteType === 'up' ? 2 : -2
-    }
-  } else {
-    votes.value.push({
-      itemId,
-      itemType,
-      type: voteType,
-      userId: currentUser.value.id
-    })
-    voteDelta = voteType === 'up' ? 1 : -1
-  }
-
-  if (itemType === 'post') {
-    const post = posts.value.find(p => p.id === itemId)
-    if (post) post.votes += voteDelta
-  } else {
-    const comment = comments.value.find(c => c.id === itemId)
-    if (comment) comment.votes += voteDelta
+  try {
+    const response = await apiService.vote(itemId, itemType, voteType)
+    return response
+  } catch (error) {
+    showError()
   }
 }
 
-const getUserVote = (itemId: number, itemType: 'post' | 'comment'): 'up' | 'down' | null => {
-  if (!currentUser.value) return null
-  const vote = votes.value.find(v => 
-    v.itemId === itemId && v.itemType === itemType && v.userId === currentUser.value!.id
-  )
-  return vote ? vote.type : null
-}
-
+// Utility methods
 const showReport = (itemId: number, type: 'post' | 'comment') => {
   reportItemId.value = itemId
   reportType.value = type
@@ -363,8 +285,8 @@ const showReport = (itemId: number, type: 'post' | 'comment') => {
 }
 
 const confirmReport = () => {
-  // Mock report functionality
-  console.log(`Reported ${reportType.value} ${reportItemId.value}`)
+  // TODO: Implement when API endpoint is ready
+  showSuccess(`${reportType.value} reported successfully`)
   showReportModal.value = false
   reportItemId.value = null
 }
@@ -375,7 +297,7 @@ const cancelReport = () => {
 }
 
 const showCommentPreview = (commentId: number, event: MouseEvent) => {
-  const comment = comments.value.find(c => c.id === commentId)
+  const comment = allComments.value.find(c => c.id === commentId)
   if (comment) {
     hoveredComment.value = comment
     tooltipPosition.value = {
@@ -393,14 +315,14 @@ const sharePost = async (postId: number) => {
   const url = `${window.location.origin}/post/${postId}`
   try {
     await navigator.clipboard.writeText(url)
-    // Could add a toast notification here
-    console.log('URL copied to clipboard')
+    showSuccess('URL copied to clipboard')
   } catch (err) {
-    console.error('Failed to copy URL:', err)
+    showError('Failed to copy URL')
   }
 }
 
-const formatDate = (date: Date): string => {
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
@@ -410,27 +332,23 @@ const formatDate = (date: Date): string => {
   return `${Math.floor(diffHours / 24)}d ago`
 }
 
+// Initialize auth on mount
+onMounted(() => {
+  verifyAuth()
+})
+
 // Provide data to child components
 provide('currentUser', currentUser)
-provide('posts', posts)
-provide('comments', comments)
-provide('users', users)
-provide('votes', votes)
+provide('allComments', allComments)
 provide('showLogin', showLogin)
 provide('submitPost', submitPost)
 provide('submitComment', submitComment)
 provide('vote', vote)
-provide('getUserVote', getUserVote)
 provide('showReport', showReport)
 provide('showCommentPreview', showCommentPreview)
 provide('hideCommentPreview', hideCommentPreview)
 provide('sharePost', sharePost)
 provide('formatDate', formatDate)
+provide('showError', showError)
+provide('showSuccess', showSuccess)
 </script>
-
-<style>
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-}
-</style>
