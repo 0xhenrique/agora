@@ -80,7 +80,7 @@
             <div>
               <select
                 v-model="postsFilter.sortBy"
-                @change="loadPosts"
+                @change="() => loadPosts()"
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="created_at">Newest First</option>
@@ -90,7 +90,7 @@
             <div>
               <select
                 v-model="postsFilter.status"
-                @change="loadPosts"
+                @change="() => loadPosts()"
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Posts</option>
@@ -241,7 +241,7 @@
             <div>
               <select
                 v-model="commentsFilter.sortBy"
-                @change="loadComments"
+                @change="() => loadComments()"
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="created_at">Newest First</option>
@@ -251,7 +251,7 @@
             <div>
               <select
                 v-model="commentsFilter.status"
-                @change="loadComments"
+                @change="() => loadComments()"
                 class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Comments</option>
@@ -612,7 +612,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject, watch } from 'vue'
+import { ref, onMounted, inject, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { modApiService } from '../services/api'
 
