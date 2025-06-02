@@ -57,7 +57,9 @@ interface VoteStatusResponse {
 }
 
 class ApiService {
-  private baseUrl = '/api'
+  private baseUrl = import.meta.env.PROD ? 
+    `${import.meta.env.VITE_API_BASE_URL}/api` : 
+    '/api'  // Use proxy in development
   
   private getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem('token')

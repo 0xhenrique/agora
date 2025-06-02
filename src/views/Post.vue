@@ -153,14 +153,14 @@
                 report
               </button>
             </div>
-            
+
             <div 
-              class="text-gray-700 text-sm whitespace-pre-wrap"
-              v-html="parseCommentBody(comment.body)"
-              @click="handleQuoteInteraction"
-              @mouseenter="handleQuoteInteraction" 
-              @mouseleave="handleQuoteInteraction"
-            >
+			  class="text-gray-700 text-sm whitespace-pre-wrap"
+			  v-html="parseCommentBody(comment.body)"
+			  @click="handleQuoteClick"
+			  @mouseover="handleQuoteMouseEnter" 
+			  @mouseout="handleQuoteMouseLeave"
+			>
             </div>
           </div>
         </div>
@@ -270,33 +270,72 @@ const parseCommentBody = (body: string): string => {
 
 const highlightedCommentId = ref<number | null>(null)
 
-const handleQuoteInteraction = (event: Event) => {
+const handleQuoteClick = (event: Event) => {
   const target = event.target as HTMLElement
   if (target.classList.contains('quote-link')) {
     const commentId = parseInt(target.dataset.commentId || '0')
     if (commentId) {
-      if (event.type === 'mouseenter') {
-        showCommentPreview(commentId, event as MouseEvent)
-      } else if (event.type === 'mouseleave') {
-        hideCommentPreview()
-      } else if (event.type === 'click') {
-        // Highlight the target comment
-        highlightedCommentId.value = commentId
-        
-        // Scroll to the comment
-        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`)?.closest('.bg-white')
-        if (commentElement) {
-          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }
-        
-        // Remove highlight after 3 seconds
-        setTimeout(() => {
-          highlightedCommentId.value = null
-        }, 5000)
+      // Highlight the target comment
+      highlightedCommentId.value = commentId
+      
+      // Scroll to the comment
+      const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`)?.closest('.bg-white')
+      if (commentElement) {
+        commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
+      
+      // Remove highlight after 5 seconds
+      setTimeout(() => {
+        highlightedCommentId.value = null
+      }, 5000)
     }
   }
 }
+
+const handleQuoteMouseEnter = (event: Event) => {
+  const target = event.target as HTMLElement
+  if (target.classList.contains('quote-link')) {
+    const commentId = parseInt(target.dataset.commentId || '0')
+    if (commentId) {
+      showCommentPreview(commentId, event as MouseEvent)
+    }
+  }
+}
+
+const handleQuoteMouseLeave = (event: Event) => {
+  const target = event.target as HTMLElement
+  if (target.classList.contains('quote-link')) {
+    hideCommentPreview()
+  }
+}
+
+//const handleQuoteInteraction = (event: Event) => {
+//  const target = event.target as HTMLElement
+//  if (target.classList.contains('quote-link')) {
+//    const commentId = parseInt(target.dataset.commentId || '0')
+//    if (commentId) {
+//      if (event.type === 'mouseenter') {
+//        showCommentPreview(commentId, event as MouseEvent)
+//      } else if (event.type === 'mouseleave') {
+//        hideCommentPreview()
+//      } else if (event.type === 'click') {
+//        // Highlight the target comment
+//        highlightedCommentId.value = commentId
+//        
+//        // Scroll to the comment
+//        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`)?.closest('.bg-white')
+//        if (commentElement) {
+//          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+//        }
+//        
+//        // Remove highlight after 3 seconds
+//        setTimeout(() => {
+//          highlightedCommentId.value = null
+//        }, 5000)
+//      }
+//    }
+//  }
+//}
 
 const replyToComment = (commentId: number) => {
   commentForm.value.body = `>>${commentId}\n` + commentForm.value.body
