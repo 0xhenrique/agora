@@ -27,6 +27,10 @@ const routes = [
     name: 'ModPanel',
     component: ModPanel,
     meta: { requiresModerator: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 
