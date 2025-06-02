@@ -242,7 +242,7 @@ const handleSubmitComment = async () => {
   isSubmittingComment.value = true
   try {
     // Send the full body as-is, no parsing needed
-    const newComment = await submitComment(postId.value, {
+    await submitComment(postId.value, {
       body: commentForm.value.body
     })
     

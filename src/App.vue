@@ -162,7 +162,7 @@
 <script setup lang="ts">
 import { ref, provide, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { apiService, type User, type Post, type Comment } from './services/api'
+import { apiService, type User, type Comment } from './services/api'
 import { useToast } from './services/toast'
 
 const router = useRouter()

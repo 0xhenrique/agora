@@ -67,8 +67,8 @@
 import { ref, inject } from 'vue'
 
 const submitPost = inject('submitPost') as Function
-const currentUser = inject('currentUser')
-const showLogin = inject('showLogin')
+const currentUser = inject('currentUser') as any
+const showLogin = inject('showLogin') as any
 
 const isSubmitting = ref(false)
 
