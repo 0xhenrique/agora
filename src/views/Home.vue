@@ -2,28 +2,28 @@
   <div>
     <!-- Loading state -->
     <div v-if="isLoading" class="text-center py-8">
-      <div class="text-gray-600">Loading posts...</div>
+      <div class="text-theme-secondary">Loading posts...</div>
     </div>
 
     <!-- Posts list -->
     <div v-else-if="posts.length > 0">
-      <div v-for="post in posts" :key="post.id" class="bg-white rounded-lg border border-gray-200 mb-4 p-4">
+      <div v-for="post in posts" :key="post.id" class="bg-theme-primary rounded-lg border border-theme-primary mb-4 p-4">
         <div class="flex items-start space-x-3">
           <!-- Vote Controls -->
           <div class="flex flex-col items-center space-y-1 mt-1">
             <button 
               @click="handleVote(post.id, 'up', 'post')"
-              :class="post.userVote === 'up' ? 'text-orange-600' : 'text-gray-400'"
-              class="hover:text-orange-600"
+              :class="post.userVote === 'up' ? 'text-accent-warning' : 'text-theme-tertiary'"
+              class="hover:text-accent-warning transition-colors"
               :disabled="isVoting[`post_${post.id}`]"
             >
               ▲
             </button>
-            <span class="text-sm font-medium">{{ post.votes }}</span>
+            <span class="text-sm font-medium text-theme-primary">{{ post.votes }}</span>
             <button 
               @click="handleVote(post.id, 'down', 'post')"
-              :class="post.userVote === 'down' ? 'text-blue-600' : 'text-gray-400'"
-              class="hover:text-blue-600"
+              :class="post.userVote === 'down' ? 'text-accent-primary' : 'text-theme-tertiary'"
+              class="hover:text-accent-primary transition-colors"
               :disabled="isVoting[`post_${post.id}`]"
             >
               ▼
@@ -32,38 +32,38 @@
 
           <!-- Post Content -->
           <div class="flex-1 min-w-0">
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">
-              <router-link :to="`/post/${post.id}`" class="hover:text-blue-600">
+            <h3 class="text-lg font-semibold text-theme-primary mb-2">
+              <router-link :to="`/post/${post.id}`" class="hover:text-accent-primary transition-colors">
                 {{ post.title }}
               </router-link>
             </h3>
             
             <!-- Link Preview -->
-            <div v-if="post.url" class="text-blue-600 hover:text-blue-800 mb-2">
+            <div v-if="post.url" class="text-accent-primary hover:text-accent-secondary mb-2 transition-colors">
               <a :href="post.url" target="_blank" class="text-sm truncate block max-w-full">
                 {{ post.url }}
               </a>
             </div>
 
             <!-- Post Meta -->
-            <div class="flex items-center space-x-4 text-sm text-gray-500">
+            <div class="flex items-center space-x-4 text-sm text-theme-secondary">
               <span>by {{ post.author }}</span>
               <span>{{ formatDate(post.createdAt) }}</span>
               <router-link 
                 :to="`/post/${post.id}`"
-                class="hover:text-gray-700"
+                class="hover:text-theme-primary transition-colors"
               >
                 {{ post.commentCount || 0 }} comments
               </router-link>
               <button 
                 @click="sharePost(post.id)"
-                class="hover:text-gray-700"
+                class="hover:text-theme-primary transition-colors"
               >
                 share
               </button>
               <button 
                 @click="showReport(post.id, 'post')"
-                class="hover:text-red-600"
+                class="hover:text-accent-error transition-colors"
               >
                 report
               </button>
@@ -77,7 +77,7 @@
         <button 
           @click="loadMore"
           :disabled="isLoadingMore"
-          class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+          class="bg-accent-primary text-white px-6 py-2 rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {{ isLoadingMore ? 'Loading...' : 'Load More' }}
         </button>
@@ -86,11 +86,11 @@
 
     <!-- Empty state -->
     <div v-else class="text-center py-8">
-      <h2 class="text-xl font-semibold text-gray-900 mb-2">No posts yet</h2>
-      <p class="text-gray-600 mb-4">Be the first to share something!</p>
+      <h2 class="text-xl font-semibold text-theme-primary mb-2">No posts yet</h2>
+      <p class="text-theme-secondary mb-4">Be the first to share something!</p>
       <router-link 
         to="/submit"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+        class="bg-accent-primary text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity inline-block"
       >
         Submit Post
       </router-link>

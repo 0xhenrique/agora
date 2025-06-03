@@ -1,34 +1,34 @@
 <template>
   <div v-if="isLoading" class="text-center py-8">
-    <div class="text-gray-600">Loading post...</div>
+    <div class="text-theme-secondary">Loading post...</div>
   </div>
 
   <div v-else-if="post" class="space-y-6">
     <!-- Breadcrumb -->
-    <div class="text-sm text-gray-600">
-      <router-link to="/" class="hover:text-blue-600">Home</router-link>
+    <div class="text-sm text-theme-secondary">
+      <router-link to="/" class="hover:text-accent-primary transition-colors">Home</router-link>
       <span class="mx-2">></span>
       <span>{{ post.title }}</span>
     </div>
 
     <!-- Post Content -->
-    <div class="bg-white rounded-lg border border-gray-200 p-4">
+    <div class="bg-theme-primary rounded-lg border border-theme-primary p-4">
       <div class="flex items-start space-x-3">
         <!-- Vote Controls -->
         <div class="flex flex-col items-center space-y-1 mt-1">
           <button 
             @click="handleVote(post.id, 'up', 'post')"
-            :class="post.userVote === 'up' ? 'text-orange-600' : 'text-gray-400'"
-            class="hover:text-orange-600"
+            :class="post.userVote === 'up' ? 'text-accent-warning' : 'text-theme-tertiary'"
+            class="hover:text-accent-warning transition-colors"
             :disabled="isVotingPost"
           >
             ▲
           </button>
-          <span class="text-sm font-medium">{{ post.votes }}</span>
+          <span class="text-sm font-medium text-theme-primary">{{ post.votes }}</span>
           <button 
             @click="handleVote(post.id, 'down', 'post')"
-            :class="post.userVote === 'down' ? 'text-blue-600' : 'text-gray-400'"
-            class="hover:text-blue-600"
+            :class="post.userVote === 'down' ? 'text-accent-primary' : 'text-theme-tertiary'"
+            class="hover:text-accent-primary transition-colors"
             :disabled="isVotingPost"
           >
             ▼
@@ -37,24 +37,24 @@
 
         <!-- Post Content -->
         <div class="flex-1 min-w-0">
-          <h1 class="text-xl font-semibold text-gray-900 mb-2">{{ post.title }}</h1>
+          <h1 class="text-xl font-semibold text-theme-primary mb-2">{{ post.title }}</h1>
           
-          <div v-if="post.url" class="text-blue-600 hover:text-blue-800 mb-2">
+          <div v-if="post.url" class="text-accent-primary hover:text-accent-secondary mb-2 transition-colors">
             <a :href="post.url" target="_blank" class="text-sm truncate block max-w-full">
               {{ post.url }}
             </a>
           </div>
 
           <div v-if="post.imageUrl" class="mb-3">
-            <img :src="post.imageUrl" :alt="post.title" class="max-w-full h-auto w-auto max-h-96 rounded border object-contain">
+            <img :src="post.imageUrl" :alt="post.title" class="max-w-full h-auto w-auto max-h-96 rounded border border-theme-primary object-contain">
           </div>
 
-          <div v-if="post.body" class="text-gray-700 mb-3 whitespace-pre-wrap">
+          <div v-if="post.body" class="text-theme-primary mb-3 whitespace-pre-wrap">
             <span v-if="!showFullBody && post.body.length > 600">
               {{ post.body.slice(0, 600) }}...
               <button 
                 @click="showFullBody = true"
-                class="text-blue-600 hover:text-blue-800 ml-1"
+                class="text-accent-primary hover:text-accent-secondary ml-1 transition-colors"
               >
                 read more
               </button>
@@ -64,25 +64,25 @@
               <button 
                 v-if="showFullBody && post.body.length > 600"
                 @click="showFullBody = false"
-                class="text-blue-600 hover:text-blue-800 ml-1"
+                class="text-accent-primary hover:text-accent-secondary ml-1 transition-colors"
               >
                 show less
               </button>
             </span>
           </div>
 
-          <div class="flex items-center space-x-4 text-sm text-gray-500">
+          <div class="flex items-center space-x-4 text-sm text-theme-secondary">
             <span>by {{ post.author }}</span>
             <span>{{ formatDate(post.createdAt) }}</span>
             <button 
               @click="sharePost(post.id)"
-              class="hover:text-gray-700"
+              class="hover:text-theme-primary transition-colors"
             >
               share
             </button>
             <button 
               @click="showReport(post.id, 'post')"
-              class="hover:text-red-600"
+              class="hover:text-accent-error transition-colors"
             >
               report
             </button>
@@ -92,18 +92,18 @@
     </div>
 
     <!-- Comment Form -->
-    <div v-if="currentUser" class="bg-white rounded-lg border border-gray-200 p-4">
+    <div v-if="currentUser" class="bg-theme-primary rounded-lg border border-theme-primary p-4">
       <form @submit.prevent="handleSubmitComment">
         <textarea 
           v-model="commentForm.body"
           rows="4"
           placeholder="Write a comment..."
-          class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full border border-theme-primary rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-theme-primary text-theme-primary placeholder-theme-tertiary"
           required
         ></textarea>
         <button 
           type="submit" 
-          class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          class="mt-2 bg-accent-primary text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
           :disabled="isSubmittingComment"
         >
           {{ isSubmittingComment ? 'Posting...' : 'Post Comment' }}
@@ -112,11 +112,11 @@
     </div>
 
     <!-- Login prompt -->
-    <div v-else class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <p class="text-gray-600 mb-2">Please log in to comment</p>
+    <div v-else class="bg-theme-primary rounded-lg border border-theme-primary p-4 text-center">
+      <p class="text-theme-secondary mb-2">Please log in to comment</p>
       <button 
         @click="showLogin = true"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+        class="bg-accent-primary text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
       >
         Login
       </button>
@@ -124,34 +124,34 @@
 
     <!-- Comments List -->
     <div class="space-y-3">
-	  <div 
-		v-for="comment in comments" 
-		:key="comment.id"
-		:data-comment-id="comment.id"
-		class="bg-white rounded border border-gray-200 p-3 transition-all duration-300"
-		:class="{ 
-			'ring-2 ring-yellow-400 bg-yellow-50': highlightedCommentId === comment.id,
-			'shadow-lg': highlightedCommentId === comment.id,
-			'border-l-4 border-l-blue-500 bg-blue-50': isOwnComment(comment),
-			'border-l-gray-200': !isOwnComment(comment)
-		}"
-		>
+      <div 
+        v-for="comment in comments" 
+        :key="comment.id"
+        :data-comment-id="comment.id"
+        class="bg-theme-primary rounded border border-theme-primary p-3 transition-all duration-300"
+        :class="{ 
+          'ring-2 ring-yellow-400 bg-yellow-50': highlightedCommentId === comment.id,
+          'shadow-lg': highlightedCommentId === comment.id,
+          'border-l-4 border-l-blue-500 bg-blue-50': isOwnComment(comment),
+          'border-l-theme-primary': !isOwnComment(comment)
+        }"
+        >
         <div class="flex items-start space-x-3">
           <!-- Vote Controls -->
           <div class="flex flex-col items-center space-y-1">
             <button 
               @click="handleVote(comment.id, 'up', 'comment')"
-              :class="comment.userVote === 'up' ? 'text-orange-600' : 'text-gray-400'"
-              class="hover:text-orange-600 text-sm"
+              :class="comment.userVote === 'up' ? 'text-accent-warning' : 'text-theme-tertiary'"
+              class="hover:text-accent-warning text-sm transition-colors"
               :disabled="isVoting[`comment_${comment.id}`]"
             >
               ▲
             </button>
-            <span class="text-xs">{{ comment.votes }}</span>
+            <span class="text-xs text-theme-primary">{{ comment.votes }}</span>
             <button 
               @click="handleVote(comment.id, 'down', 'comment')"
-              :class="comment.userVote === 'down' ? 'text-blue-600' : 'text-gray-400'"
-              class="hover:text-blue-600 text-sm"
+              :class="comment.userVote === 'down' ? 'text-accent-primary' : 'text-theme-tertiary'"
+              class="hover:text-accent-primary text-sm transition-colors"
               :disabled="isVoting[`comment_${comment.id}`]"
             >
               ▼
@@ -160,46 +160,46 @@
 
           <!-- Comment Content -->
           <div class="flex-1">
-			<div v-if="getReplies(comment.id).length > 0" class="mt-2 text-xs text-gray-500">
-			  <span>Replies: </span>
-			  <span 
-				v-for="(replyId, index) in getReplies(comment.id)" 
-				:key="replyId"
-				class="text-green-600 hover:underline cursor-pointer quote-link"
-				:data-comment-id="replyId"
-				@click.stop="handleQuoteClick"
-				@mouseover="handleQuoteMouseEnter"
-				@mouseout="handleQuoteMouseLeave"
-			  >
-				>>{{ replyId }}{{ index < getReplies(comment.id).length - 1 ? ' ' : '' }}
-			  </span>
-			</div>
+            <div v-if="getReplies(comment.id).length > 0" class="mt-2 text-xs text-theme-tertiary">
+              <span>Replies: </span>
+              <span 
+                v-for="(replyId, index) in getReplies(comment.id)" 
+                :key="replyId"
+                class="text-green-600 hover:underline cursor-pointer quote-link"
+                :data-comment-id="replyId"
+                @click.stop="handleQuoteClick"
+                @mouseover="handleQuoteMouseEnter"
+                @mouseout="handleQuoteMouseLeave"
+              >
+                >>{{ replyId }}{{ index < getReplies(comment.id).length - 1 ? ' ' : '' }}
+              </span>
+            </div>
 
             <div class="flex items-center space-x-2 mb-2">
-              <span class="text-sm font-medium text-blue-600">{{ comment.author }}</span>
-              <span class="text-xs text-gray-500">{{ formatDate(comment.createdAt) }}</span>
-              <span class="text-xs text-gray-400">No. {{ comment.id }}</span>
+              <span class="text-sm font-medium text-accent-primary">{{ comment.author }}</span>
+              <span class="text-xs text-theme-tertiary">{{ formatDate(comment.createdAt) }}</span>
+              <span class="text-xs text-theme-tertiary">No. {{ comment.id }}</span>
               <button 
                 @click="replyToComment(comment.id)"
-                class="text-xs text-blue-600 hover:text-blue-800"
+                class="text-xs text-accent-primary hover:text-accent-secondary transition-colors"
               >
                 reply
               </button>
               <button 
                 @click="showReport(comment.id, 'comment')"
-                class="text-xs text-red-600 hover:text-red-800"
+                class="text-xs text-accent-error hover:opacity-80 transition-opacity"
               >
                 report
               </button>
             </div>
 
             <div 
-			  class="text-gray-700 text-sm whitespace-pre-wrap"
-			  v-html="parseCommentBody(comment.body)"
-			  @click="handleQuoteClick"
-			  @mouseover="handleQuoteMouseEnter" 
-			  @mouseout="handleQuoteMouseLeave"
-			>
+              class="text-theme-primary text-sm whitespace-pre-wrap"
+              v-html="parseCommentBody(comment.body)"
+              @click="handleQuoteClick"
+              @mouseover="handleQuoteMouseEnter" 
+              @mouseout="handleQuoteMouseLeave"
+            >
             </div>
           </div>
         </div>
@@ -209,9 +209,9 @@
 
   <!-- 404 case -->
   <div v-else class="text-center py-8">
-    <h2 class="text-xl font-semibold text-gray-900 mb-2">Post not found</h2>
-    <p class="text-gray-600 mb-4">The post you're looking for doesn't exist.</p>
-    <router-link to="/" class="text-blue-600 hover:text-blue-800">
+    <h2 class="text-xl font-semibold text-theme-primary mb-2">Post not found</h2>
+    <p class="text-theme-secondary mb-4">The post you're looking for doesn't exist.</p>
+    <router-link to="/" class="text-accent-primary hover:text-accent-secondary transition-colors">
       ← Back to posts
     </router-link>
   </div>

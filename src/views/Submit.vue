@@ -1,12 +1,12 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
-    <h2 class="text-xl font-semibold mb-4">Submit New Post</h2>
+  <div class="bg-theme-primary rounded-lg border border-theme-primary p-6">
+    <h2 class="text-xl font-semibold mb-4 text-theme-primary">Submit New Post</h2>
     
     <div v-if="!currentUser" class="text-center py-8">
-      <p class="text-gray-600 mb-4">Please log in to submit a post</p>
+      <p class="text-theme-secondary mb-4">Please log in to submit a post</p>
       <button 
         @click="showLogin = true"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+        class="bg-accent-primary text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
       >
         Login
       </button>
@@ -15,55 +15,55 @@
     <form v-else @submit.prevent="handleSubmit">
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Title</label>
           <input 
             v-model="form.title"
             type="text" 
             required
             maxlength="300"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            :class="{ 'border-red-300': titleTooLong }"
+            class="w-full border border-theme-primary rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-theme-primary text-theme-primary placeholder-theme-tertiary"
+            :class="{ 'border-accent-error': titleTooLong }"
             :disabled="isSubmitting"
           >
           <div class="flex justify-between items-center mt-1">
-            <div v-if="titleTooLong" class="text-red-600 text-sm">
+            <div v-if="titleTooLong" class="text-accent-error text-sm">
               Title is too long
             </div>
-            <div class="text-sm text-gray-500 ml-auto">
+            <div class="text-sm text-theme-tertiary ml-auto">
               {{ form.title.length }}/300 characters
             </div>
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">URL (optional)</label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">URL (optional)</label>
           <input 
             v-model="form.url"
             type="url" 
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-theme-primary rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-theme-primary text-theme-primary placeholder-theme-tertiary"
             :disabled="isSubmitting"
           >
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Image URL (optional)</label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Image URL (optional)</label>
           <input 
             v-model="form.imageUrl"
             type="url" 
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-theme-primary rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-theme-primary text-theme-primary placeholder-theme-tertiary"
             :disabled="isSubmitting"
           >
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Body Text</label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Body Text</label>
           <textarea 
             v-model="form.body"
             rows="6"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full border border-theme-primary rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-theme-primary text-theme-primary placeholder-theme-tertiary"
             :disabled="isSubmitting"
           ></textarea>
         </div>
         <button 
           type="submit" 
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="bg-accent-primary text-white px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
           :disabled="isSubmitting || titleTooLong || !form.title.trim()"
         >
           {{ isSubmitting ? 'Submitting...' : 'Submit Post' }}
