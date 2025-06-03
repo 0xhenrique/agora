@@ -193,15 +193,6 @@
               </button>
             </div>
 
-			<div 
-			  class="text-gray-700 text-sm whitespace-pre-wrap"
-			  v-html="parseCommentBody(comment.body)"
-			  @click="handleQuoteClick"
-			  @mouseover="handleQuoteMouseEnter" 
-			  @mouseout="handleQuoteMouseLeave"
-			>
-			</div>
-
             <div 
 			  class="text-gray-700 text-sm whitespace-pre-wrap"
 			  v-html="parseCommentBody(comment.body)"
@@ -364,9 +355,9 @@ const handleQuoteClick = (event: Event) => {
       highlightedCommentId.value = commentId
       
       // Scroll to the comment
-      const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`)?.closest('.bg-white')
+      const commentElement = document.querySelector(`div[data-comment-id="${commentId}"].bg-white.rounded.border`)
       if (commentElement) {
-        commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        commentElement.scrollIntoView(true)
       }
       
       // Remove highlight after 5 seconds
