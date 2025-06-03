@@ -343,10 +343,29 @@ const showCommentPreview = (commentId: number, event: MouseEvent) => {
   const comment = allComments.value.find(c => c.id === commentId)
   if (comment) {
     hoveredComment.value = comment
-    tooltipPosition.value = {
-      x: event.clientX + 10,
-      y: event.clientY - 10
+    
+    // Calculate dynamic position
+    const viewportHeight = window.innerHeight
+    const scrollY = window.scrollY
+    const cursorY = event.clientY
+    const estimatedTooltipHeight = 120 // Approximate tooltip height
+    
+    let x = event.clientX + 10
+    let y = event.clientY - 10
+    
+    // If tooltip would extend below viewport, position it above cursor
+    if (cursorY + estimatedTooltipHeight > viewportHeight) {
+      y = event.clientY - estimatedTooltipHeight - 10
     }
+    
+    // Ensure tooltip doesn't go off left/right edges
+    const viewportWidth = window.innerWidth
+    const estimatedTooltipWidth = 384 // max-w-md = 24rem = 384px
+    if (x + estimatedTooltipWidth > viewportWidth) {
+      x = viewportWidth - estimatedTooltipWidth - 10
+    }
+    
+    tooltipPosition.value = { x, y }
   }
 }
 

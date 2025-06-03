@@ -124,16 +124,18 @@
 
     <!-- Comments List -->
     <div class="space-y-3">
-      <div 
-        v-for="comment in comments" 
-        :key="comment.id"
-        :data-comment-id="comment.id"
-        class="bg-white rounded border border-gray-200 p-3 transition-all duration-300"
-        :class="{ 
-          'ring-2 ring-yellow-400 bg-yellow-50': highlightedCommentId === comment.id,
-          'shadow-lg': highlightedCommentId === comment.id
-        }"
-      >
+	  <div 
+		v-for="comment in comments" 
+		:key="comment.id"
+		:data-comment-id="comment.id"
+		class="bg-white rounded border border-gray-200 p-3 transition-all duration-300"
+		:class="{ 
+			'ring-2 ring-yellow-400 bg-yellow-50': highlightedCommentId === comment.id,
+			'shadow-lg': highlightedCommentId === comment.id,
+			'border-l-4 border-l-blue-500 bg-blue-50': isOwnComment(comment),
+			'border-l-gray-200': !isOwnComment(comment)
+		}"
+		>
         <div class="flex items-start space-x-3">
           <!-- Vote Controls -->
           <div class="flex flex-col items-center space-y-1">
@@ -158,6 +160,21 @@
 
           <!-- Comment Content -->
           <div class="flex-1">
+			<div v-if="getReplies(comment.id).length > 0" class="mt-2 text-xs text-gray-500">
+			  <span>Replies: </span>
+			  <span 
+				v-for="(replyId, index) in getReplies(comment.id)" 
+				:key="replyId"
+				class="text-green-600 hover:underline cursor-pointer quote-link"
+				:data-comment-id="replyId"
+				@click.stop="handleQuoteClick"
+				@mouseover="handleQuoteMouseEnter"
+				@mouseout="handleQuoteMouseLeave"
+			  >
+				>>{{ replyId }}{{ index < getReplies(comment.id).length - 1 ? ' ' : '' }}
+			  </span>
+			</div>
+
             <div class="flex items-center space-x-2 mb-2">
               <span class="text-sm font-medium text-blue-600">{{ comment.author }}</span>
               <span class="text-xs text-gray-500">{{ formatDate(comment.createdAt) }}</span>
@@ -175,6 +192,15 @@
                 report
               </button>
             </div>
+
+			<div 
+			  class="text-gray-700 text-sm whitespace-pre-wrap"
+			  v-html="parseCommentBody(comment.body)"
+			  @click="handleQuoteClick"
+			  @mouseover="handleQuoteMouseEnter" 
+			  @mouseout="handleQuoteMouseLeave"
+			>
+			</div>
 
             <div 
 			  class="text-gray-700 text-sm whitespace-pre-wrap"
@@ -234,6 +260,36 @@ const commentForm = ref({
 
 const postId = computed(() => parseInt(route.params.id as string))
 
+const isOwnComment = (comment: Comment): boolean => {
+  return currentUser.value && comment.author === currentUser.value.username
+}
+
+const getReplies = (commentId: number): number[] => {
+  return replyMap.value[commentId] || []
+}
+
+const replyMap = computed(() => {
+  const map: Record<number, number[]> = {}
+  
+  comments.value.forEach(comment => {
+    // Extract all >>number references from comment body
+    const matches = comment.body.match(/>>(\d+)/g)
+    if (matches) {
+      // Get unique referenced IDs to avoid duplicates from the same comment
+      const uniqueReferencedIds = [...new Set(matches.map(match => parseInt(match.replace('>>', ''))))]
+      
+      uniqueReferencedIds.forEach(referencedId => {
+        if (!map[referencedId]) {
+          map[referencedId] = []
+        }
+        map[referencedId].push(comment.id)
+      })
+    }
+  })
+  
+  return map
+})
+
 const loadPost = async (showLoadingState = true) => {
   if (showLoadingState) {
     isLoading.value = true
@@ -264,15 +320,21 @@ const handleSubmitComment = async () => {
   
   isSubmittingComment.value = true
   try {
-    // Send the full body as-is, no parsing needed
     await submitComment(postId.value, {
       body: commentForm.value.body
     })
     
-    // Refresh the post data instead of manually adding to avoid duplication
     await loadPost(false)
-    
     commentForm.value = { body: '' }
+    
+    // Scroll to bottom after comment is added
+    setTimeout(() => {
+      window.scrollTo({ 
+        top: document.body.scrollHeight, 
+        behavior: 'smooth' 
+      })
+    }, 100) // Small delay to ensure DOM is updated
+    
   } catch (error) {
     // Error already handled in submitComment
   } finally {
