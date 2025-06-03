@@ -346,7 +346,6 @@ const showCommentPreview = (commentId: number, event: MouseEvent) => {
     
     // Calculate dynamic position
     const viewportHeight = window.innerHeight
-    const scrollY = window.scrollY
     const cursorY = event.clientY
     const estimatedTooltipHeight = 120 // Approximate tooltip height
     
