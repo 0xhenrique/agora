@@ -46,10 +46,30 @@
           </div>
 
           <div v-if="post.imageUrl" class="mb-3">
-            <img :src="post.imageUrl" :alt="post.title" class="max-w-md rounded border">
+            <img :src="post.imageUrl" :alt="post.title" class="max-w-full h-auto w-auto max-h-96 rounded border object-contain">
           </div>
 
-          <div v-if="post.body" class="text-gray-700 mb-3 whitespace-pre-wrap">{{ post.body }}</div>
+          <div v-if="post.body" class="text-gray-700 mb-3 whitespace-pre-wrap">
+            <span v-if="!showFullBody && post.body.length > 600">
+              {{ post.body.slice(0, 600) }}...
+              <button 
+                @click="showFullBody = true"
+                class="text-blue-600 hover:text-blue-800 ml-1"
+              >
+                read more
+              </button>
+            </span>
+            <span v-else>
+              {{ post.body }}
+              <button 
+                v-if="showFullBody && post.body.length > 600"
+                @click="showFullBody = false"
+                class="text-blue-600 hover:text-blue-800 ml-1"
+              >
+                show less
+              </button>
+            </span>
+          </div>
 
           <div class="flex items-center space-x-4 text-sm text-gray-500">
             <span>by {{ post.author }}</span>
@@ -206,6 +226,7 @@ const isLoading = ref(true)
 const isSubmittingComment = ref(false)
 const isVotingPost = ref(false)
 const isVoting = ref<Record<string, boolean>>({})
+const showFullBody = ref(false)
 
 const commentForm = ref({
   body: ''
