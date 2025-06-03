@@ -20,9 +20,19 @@
             v-model="form.title"
             type="text" 
             required
+            maxlength="300"
             class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="{ 'border-red-300': titleTooLong }"
             :disabled="isSubmitting"
           >
+          <div class="flex justify-between items-center mt-1">
+            <div v-if="titleTooLong" class="text-red-600 text-sm">
+              Title is too long
+            </div>
+            <div class="text-sm text-gray-500 ml-auto">
+              {{ form.title.length }}/300 characters
+            </div>
+          </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">URL (optional)</label>
@@ -53,8 +63,8 @@
         </div>
         <button 
           type="submit" 
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-          :disabled="isSubmitting"
+          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="isSubmitting || titleTooLong || !form.title.trim()"
         >
           {{ isSubmitting ? 'Submitting...' : 'Submit Post' }}
         </button>
@@ -64,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject } from 'vue'
+import { ref, inject, computed } from 'vue'
 
 const submitPost = inject('submitPost') as Function
 const currentUser = inject('currentUser') as any
@@ -79,16 +89,22 @@ const form = ref({
   body: ''
 })
 
+const titleTooLong = computed(() => form.value.title.length > 300)
+
 const handleSubmit = async () => {
   if (!currentUser.value) {
     showLogin.value = true
     return
   }
   
+  if (titleTooLong.value || !form.value.title.trim()) {
+    return
+  }
+  
   isSubmitting.value = true
   try {
     // Filter out empty optional fields
-    const postData: any = { title: form.value.title }
+    const postData: any = { title: form.value.title.trim() }
     if (form.value.url.trim()) postData.url = form.value.url.trim()
     if (form.value.imageUrl.trim()) postData.imageUrl = form.value.imageUrl.trim()
     if (form.value.body.trim()) postData.body = form.value.body.trim()

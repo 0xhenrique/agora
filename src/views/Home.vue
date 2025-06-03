@@ -31,7 +31,7 @@
           </div>
 
           <!-- Post Content -->
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <h3 class="text-lg font-semibold text-gray-900 mb-2">
               <router-link :to="`/post/${post.id}`" class="hover:text-blue-600">
                 {{ post.title }}
@@ -40,16 +40,10 @@
             
             <!-- Link Preview -->
             <div v-if="post.url" class="text-blue-600 hover:text-blue-800 mb-2">
-              <a :href="post.url" target="_blank" class="text-sm">{{ post.url }}</a>
+              <a :href="post.url" target="_blank" class="text-sm truncate block max-w-full">
+                {{ post.url }}
+              </a>
             </div>
-
-            <!-- Image -->
-            <div v-if="post.imageUrl" class="mb-3">
-              <img :src="post.imageUrl" :alt="post.title" class="max-w-md rounded border">
-            </div>
-
-            <!-- Body Text -->
-            <div v-if="post.body" class="text-gray-700 mb-3 whitespace-pre-wrap">{{ post.body }}</div>
 
             <!-- Post Meta -->
             <div class="flex items-center space-x-4 text-sm text-gray-500">

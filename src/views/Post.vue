@@ -36,11 +36,13 @@
         </div>
 
         <!-- Post Content -->
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
           <h1 class="text-xl font-semibold text-gray-900 mb-2">{{ post.title }}</h1>
           
           <div v-if="post.url" class="text-blue-600 hover:text-blue-800 mb-2">
-            <a :href="post.url" target="_blank" class="text-sm">{{ post.url }}</a>
+            <a :href="post.url" target="_blank" class="text-sm truncate block max-w-full">
+              {{ post.url }}
+            </a>
           </div>
 
           <div v-if="post.imageUrl" class="mb-3">
@@ -308,34 +310,6 @@ const handleQuoteMouseLeave = (event: Event) => {
     hideCommentPreview()
   }
 }
-
-//const handleQuoteInteraction = (event: Event) => {
-//  const target = event.target as HTMLElement
-//  if (target.classList.contains('quote-link')) {
-//    const commentId = parseInt(target.dataset.commentId || '0')
-//    if (commentId) {
-//      if (event.type === 'mouseenter') {
-//        showCommentPreview(commentId, event as MouseEvent)
-//      } else if (event.type === 'mouseleave') {
-//        hideCommentPreview()
-//      } else if (event.type === 'click') {
-//        // Highlight the target comment
-//        highlightedCommentId.value = commentId
-//        
-//        // Scroll to the comment
-//        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`)?.closest('.bg-white')
-//        if (commentElement) {
-//          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-//        }
-//        
-//        // Remove highlight after 3 seconds
-//        setTimeout(() => {
-//          highlightedCommentId.value = null
-//        }, 5000)
-//      }
-//    }
-//  }
-//}
 
 const replyToComment = (commentId: number) => {
   commentForm.value.body = `>>${commentId}\n` + commentForm.value.body
