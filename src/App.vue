@@ -40,7 +40,7 @@
           
           <!-- Moderator Panel Link -->
           <router-link
-            v-if="currentUser && ['moderator', 'admin'].includes(currentUser.role)"
+            v-if="currentUser && currentUser.role && ['moderator', 'admin'].includes(currentUser.role)"
             to="/mod"
             class="text-theme-secondary hover:text-accent-primary"
             :class="{ 'text-accent-primary': $route.name === 'ModPanel' }"
