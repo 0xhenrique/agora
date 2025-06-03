@@ -355,7 +355,7 @@ const handleQuoteClick = (event: Event) => {
       highlightedCommentId.value = commentId
       
       // Scroll to the comment
-      const commentElement = document.querySelector(`div[data-comment-id="${commentId}"].bg-white.rounded.border`)
+	  const commentElement = document.querySelector(`div[data-comment-id="${commentId}"]`)
       if (commentElement) {
         commentElement.scrollIntoView(true)
       }
